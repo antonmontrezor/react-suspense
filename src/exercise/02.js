@@ -24,14 +24,18 @@ function PokemonInfo({pokemonResource}) {
   )
 }
 
+function createPokemonResource(pokemonName) {
+  return createResource(fetchPokemon(pokemonName))
+}
+
 function App() {
   const [pokemonName, setPokemonName] = React.useState('')
-  const [pokemonResource, setPokemonResource] = React.useState('')
+  const [pokemonResource, setPokemonResource] = React.useState(null)
 
   React.useEffect(() => {
     setPokemonResource(() => {
       if (!pokemonName) return null
-      return createResource(fetchPokemon(pokemonName))
+      return createPokemonResource(pokemonName)
     })
   }, [pokemonName])
 
@@ -39,13 +43,33 @@ function App() {
     setPokemonName(newPokemonName)
   }
 
+  // return (
+  //   <div className="pokemon-info-app">
+  //     <PokemonForm pokemonName={pokemonName} onSubmit={handleSubmit} />
+  //     <hr />
+  //     <div className="pokemon-info">
+  //       {pokemonResource ? (
+  //         // resetKeys is used by the Boundary to clear out the error when a user manually changes pokemonResource 
+  //         <PokemonErrorBoundary onReset={() => setPokemonName('')} resetKeys={[pokemonResource]}>
+  //           <React.Suspense fallback={<PokemonInfoFallback name={pokemonName} />}>
+  //             <PokemonInfo pokemonResource={pokemonResource} />
+  //           </React.Suspense>
+  //         </PokemonErrorBoundary>
+  //       ) : (
+  //         'Submit a pokemon'
+  //       )}
+  //     </div>
+  //   </div>
+  // )
+
   return (
     <div className="pokemon-info-app">
       <PokemonForm pokemonName={pokemonName} onSubmit={handleSubmit} />
       <hr />
       <div className="pokemon-info">
         {pokemonResource ? (
-          <PokemonErrorBoundary onReset={() => setPokemonName('')}>
+          // resetKeys is used by the Boundary to clear out the error when a user manually changes pokemonResource 
+          <PokemonErrorBoundary onReset={() => setPokemonName('')} resetKeys={[pokemonResource]}>
             <React.Suspense fallback={<PokemonInfoFallback name={pokemonName} />}>
               <PokemonInfo pokemonResource={pokemonResource} />
             </React.Suspense>
