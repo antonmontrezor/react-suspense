@@ -6,51 +6,31 @@ import {
   fetchPokemon,
   PokemonInfoFallback,
   PokemonForm,
-  PokemonDataView,
   PokemonErrorBoundary,
+  getImageUrlForPokemon,
 } from '../pokemon'
 import {createResource} from '../utils'
 
-// this cache is needed for us to suspend Img component until the image is in the browser cache
-const imgSrcResourceCache = {}
+// this enables "render-as-you-fetch" principle, where we render the component only when pokemonResource is true
+// the very first time suspended component mouns, Suspense will show the fallback
+const PokemonInfo = React.lazy(() =>
+  import('../lazy/pokemon-info-render-as-you-fetch'),
+)
+
+const SUSPENSE_CONFIG = {
+  timeoutMs: 4000,
+  busyDelayMs: 300,
+  busyMinDurationMs: 700,
+}
 
 function preloadImage(src) {
   return new Promise(resolve => {
     const img = document.createElement('img')
     // browser keeps cache for images at a particular src
     img.src = src
+    // it makes the React to re-render Img component
     img.onload = () => resolve(src)
   })
-}
-
-// this component will suspend, so no matter whether the pokemon data or the image comes first, Suspense will wait for all children to stop suspending
-function Img({src, alt, ...props}) {
-  let imgSrcResource = imgSrcResourceCache[src]
-  if (!imgSrcResource) {
-    imgSrcResource = createResource(preloadImage(src))
-    imgSrcResourceCache[src] = imgSrcResource
-  }
-
-  // here, we are suspending Img to wait for imag to load to browser cache (line 20)
-  return <img src={imgSrcResource.read()} alt={alt} {...props} />
-}
-
-function PokemonInfo({pokemonResource}) {
-  const pokemon = pokemonResource.read()
-  return (
-    <div>
-      <div className="pokemon-info__img-wrapper">
-        <Img src={pokemon.image} alt={pokemon.name} />
-      </div>
-      <PokemonDataView pokemon={pokemon} />
-    </div>
-  )
-}
-
-const SUSPENSE_CONFIG = {
-  timeoutMs: 4000,
-  busyDelayMs: 300,
-  busyMinDurationMs: 700,
 }
 
 const pokemonResourceCache = {}
@@ -66,7 +46,11 @@ function getPokemonResource(name) {
 }
 
 function createPokemonResource(pokemonName) {
-  return createResource(fetchPokemon(pokemonName))
+  const data = createResource(fetchPokemon(pokemonName))
+  const image = createResource(preloadImage(getImageUrlForPokemon(pokemonName)))
+
+  // this approach is better than creating an object of state with such properties
+  return {data, image}
 }
 
 function App() {
